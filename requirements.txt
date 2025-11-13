@@ -1,11 +1,11 @@
 streamlit
-langchain
-langchain-google-genai
-langchain-community
+langchain==0.3.13
+langchain-google-genai==2.0.8
+langchain-community==0.3.13
+langchain-core==0.3.28
+langchain-text-splitters==0.3.5
 google-generativeai
 faiss-cpu
 pypdf
 python-dotenv
-typing-extensions
-langchain-core
 sentence-transformers
