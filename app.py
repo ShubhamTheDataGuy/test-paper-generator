@@ -74,7 +74,7 @@ def generate_test_paper(vectorstore, api_key, subject, topic, num_mcq, num_short
     """Generate test paper using LangChain and Gemini"""
     
     llm = ChatGoogleGenerativeAI(
-        model="gemini-2.0-flash-exp",  # Using Gemini 2.0 Flash
+        model="gemini-2.5-flash",  # Using Gemini 2.0 Flash
         google_api_key=api_key,
         temperature=0.7
     )
