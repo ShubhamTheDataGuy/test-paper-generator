@@ -1,5 +1,5 @@
-import streamlit as st
 from langchain.text_splitter import RecursiveCharacterTextSplitter
+import streamlit as st
 from langchain_community.vectorstores import FAISS
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_community.embeddings import HuggingFaceEmbeddings
@@ -28,6 +28,7 @@ if 'vectorstore' not in st.session_state:
 if 'documents_loaded' not in st.session_state:
     st.session_state.documents_loaded = False
 
+
 def load_documents(uploaded_files) -> List:
     """Load PDF documents from uploaded files"""
     all_docs = []
@@ -48,6 +49,7 @@ def load_documents(uploaded_files) -> List:
     
     return all_docs
 
+
 def create_vectorstore(documents, api_key):
     """Create vector store from documents using HuggingFace embeddings (free, no quota limits)"""
     text_splitter = RecursiveCharacterTextSplitter(
@@ -56,7 +58,6 @@ def create_vectorstore(documents, api_key):
     )
     splits = text_splitter.split_documents(documents)
     
-    # Use HuggingFace embeddings instead of Gemini (no rate limits!)
     embeddings = HuggingFaceEmbeddings(
         model_name="sentence-transformers/all-MiniLM-L6-v2",
         model_kwargs={'device': 'cpu'},
@@ -65,6 +66,7 @@ def create_vectorstore(documents, api_key):
     
     vectorstore = FAISS.from_documents(splits, embeddings)
     return vectorstore
+
 
 def generate_test_paper(vectorstore, api_key, subject, topic, num_mcq, num_short, num_long, difficulty):
     """Generate test paper using LangChain and Gemini"""
@@ -99,16 +101,13 @@ def generate_test_paper(vectorstore, api_key, subject, topic, num_mcq, num_short
     Generate the complete test paper now:
     """)
     
-    # Create document chain
     document_chain = create_stuff_documents_chain(llm, prompt)
     
-    # Create retrieval chain
     retrieval_chain = create_retrieval_chain(
         vectorstore.as_retriever(search_kwargs={"k": 6}),
         document_chain
     )
     
-    # Generate the test paper
     result = retrieval_chain.invoke({
         "input": f"Generate test paper for {subject} on topic {topic}",
         "subject": subject,
@@ -120,6 +119,7 @@ def generate_test_paper(vectorstore, api_key, subject, topic, num_mcq, num_short
     })
     
     return result['answer']
+
 
 # Main UI
 st.title("📝 CBSE Class 10 Test Paper Generator")
@@ -135,7 +135,6 @@ with st.sidebar:
     if default_api_key:
         st.success("✅ API Key loaded from .env file")
         api_key = default_api_key
-        # Option to override
         if st.checkbox("Override API Key"):
             api_key = st.text_input(
                 "Enter Different API Key", 
@@ -170,6 +169,7 @@ with st.sidebar:
                     st.success(f"✅ Processed {len(documents)} pages successfully!")
                 except Exception as e:
                     st.error(f"Error processing documents: {str(e)}")
+
 
 # Main content area
 if not api_key:
@@ -219,7 +219,6 @@ else:
                     st.markdown("## 📄 Generated Test Paper")
                     st.markdown(test_paper)
                     
-                    # Download button
                     st.download_button(
                         label="⬇️ Download Test Paper",
                         data=test_paper,
@@ -229,6 +228,7 @@ else:
                     
                 except Exception as e:
                     st.error(f"Error generating test paper: {str(e)}")
+
 
 # Footer
 st.markdown("---")
