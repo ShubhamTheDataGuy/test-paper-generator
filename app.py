@@ -39,18 +39,20 @@ def load_documents(uploaded_files) -> List:
             tmp_file.write(uploaded_file.getvalue())
             tmp_path = tmp_file.name
         
-        # Load PDF
-        loader = PyPDFLoader(tmp_path)
-        docs = loader.load()
-        all_docs.extend(docs)
-        
-        # Clean up temp file
-        os.unlink(tmp_path)
+        try:
+            # Load PDF
+            loader = PyPDFLoader(tmp_path)
+            docs = loader.load()
+            all_docs.extend(docs)
+        finally:
+            # Clean up temp file
+            if os.path.exists(tmp_path):
+                os.unlink(tmp_path)
     
     return all_docs
 
 
-def create_vectorstore(documents, api_key):
+def create_vectorstore(documents):
     """Create vector store from documents using HuggingFace embeddings (free, no quota limits)"""
     text_splitter = RecursiveCharacterTextSplitter(
         chunk_size=1000,
@@ -72,34 +74,34 @@ def generate_test_paper(vectorstore, api_key, subject, topic, num_mcq, num_short
     """Generate test paper using LangChain and Gemini"""
     
     llm = ChatGoogleGenerativeAI(
-        model="gemini-2.0-flash-exp",
+        model="gemini-2.0-flash-exp",  # Using Gemini 2.0 Flash
         google_api_key=api_key,
         temperature=0.7
     )
     
     # Create prompt template
     prompt = ChatPromptTemplate.from_template("""
-    You are an expert CBSE Class 10 board exam paper setter. Using the following context from textbooks and previous year questions, 
-    create a test paper for {subject} on the topic: {topic}.
-    
-    Context:
-    {context}
-    
-    Requirements:
-    - Difficulty Level: {difficulty}
-    - {num_mcq} Multiple Choice Questions (1 mark each)
-    - {num_short} Short Answer Questions (2-3 marks each)
-    - {num_long} Long Answer Questions (5 marks each)
-    
-    Format the test paper professionally with:
-    1. Paper heading with subject and topic
-    2. Clear section divisions (Section A: MCQs, Section B: Short Answer, Section C: Long Answer)
-    3. Proper numbering and mark allocation
-    4. Questions that match CBSE board exam style
-    5. For MCQs, provide 4 options (a, b, c, d)
-    
-    Generate the complete test paper now:
-    """)
+You are an expert CBSE Class 10 board exam paper setter. Using the following context from textbooks and previous year questions, 
+create a test paper for {subject} on the topic: {topic}.
+
+Context:
+{context}
+
+Requirements:
+- Difficulty Level: {difficulty}
+- {num_mcq} Multiple Choice Questions (1 mark each)
+- {num_short} Short Answer Questions (2-3 marks each)
+- {num_long} Long Answer Questions (5 marks each)
+
+Format the test paper professionally with:
+1. Paper heading with subject and topic
+2. Clear section divisions (Section A: MCQs, Section B: Short Answer, Section C: Long Answer)
+3. Proper numbering and mark allocation
+4. Questions that match CBSE board exam style
+5. For MCQs, provide 4 options (a, b, c, d)
+
+Generate the complete test paper now:
+""")
     
     document_chain = create_stuff_documents_chain(llm, prompt)
     
@@ -164,11 +166,15 @@ with st.sidebar:
             with st.spinner("Processing documents... This may take a minute."):
                 try:
                     documents = load_documents(uploaded_files)
-                    st.session_state.vectorstore = create_vectorstore(documents, api_key)
-                    st.session_state.documents_loaded = True
-                    st.success(f"✅ Processed {len(documents)} pages successfully!")
+                    if not documents:
+                        st.error("No content extracted from PDFs. Please check your files.")
+                    else:
+                        st.session_state.vectorstore = create_vectorstore(documents)
+                        st.session_state.documents_loaded = True
+                        st.success(f"✅ Processed {len(documents)} pages successfully!")
                 except Exception as e:
                     st.error(f"Error processing documents: {str(e)}")
+                    st.exception(e)  # Show full traceback for debugging
 
 
 # Main content area
@@ -228,6 +234,7 @@ else:
                     
                 except Exception as e:
                     st.error(f"Error generating test paper: {str(e)}")
+                    st.exception(e)  # Show full traceback for debugging
 
 
 # Footer
